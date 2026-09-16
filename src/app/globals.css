@@ -12,9 +12,11 @@ body {
   background: #f8fafc;
 }
 
-/* Pause marquee on hover */
+/* Pause marquee on hover or touch hold */
 .marquee-track:hover .animate-marquee,
-.marquee-track:hover .animate-marquee-slow {
+.marquee-track:hover .animate-marquee-slow,
+.marquee-track:active .animate-marquee,
+.marquee-track:active .animate-marquee-slow {
   animation-play-state: paused;
 }
 

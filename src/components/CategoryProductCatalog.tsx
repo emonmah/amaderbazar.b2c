@@ -54,6 +54,17 @@ export const CategoryProductCatalog: React.FC<Props> = ({
     return counts;
   }, [initialProducts]);
 
+  // Slice hot deals to 16 best items for the marquee slider
+  const displayHotDeals = useMemo(() => {
+    if (!hotDeals || hotDeals.length === 0) return [];
+    return hotDeals.slice(0, 16);
+  }, [hotDeals]);
+
+  // Calm, steady scroll duration (8 seconds per product card => comfortable ~35 px/sec)
+  const marqueeDuration = useMemo(() => {
+    return Math.max(70, displayHotDeals.length * 8);
+  }, [displayHotDeals]);
+
   // Read URL query param on mount if present
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -278,32 +289,48 @@ export const CategoryProductCatalog: React.FC<Props> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2.5 rounded-2xl text-xs font-bold border border-white/10 self-start sm:self-auto">
-                <Clock className="w-4 h-4 text-amber-300" />
-                <span>অফার শেষ হতে আর মাত্র কয়েক দিন বাকি!</span>
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl text-xs font-bold border border-white/10">
+                  <Clock className="w-4 h-4 text-amber-300" />
+                  <span>অফার শেষ হতে আর মাত্র কয়েক দিন বাকি!</span>
+                </div>
+                {hotDeals.length > 16 && (
+                  <Link
+                    href="/collections/all?hotDeals=true"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold border border-white/20 transition backdrop-blur-sm shadow-sm"
+                  >
+                    <span>সকল ({hotDeals.length})</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
               </div>
             </div>
 
             {/* ── Infinite Marquee Slider ── */}
             {/* Outer wrapper: clips overflow + adds edge fade masks */}
             <div
-              className="marquee-track relative overflow-hidden"
+              className="marquee-track relative overflow-hidden group"
               style={{
                 /* Fade edges using a mask gradient */
-                maskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
+                maskImage: 'linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)',
               }}
             >
-              {/* Inner flex track — duplicated cards for seamless loop */}
-              <div className="flex gap-5 animate-marquee w-max">
+              {/* Inner flex track — duplicated cards for seamless loop at a calm, readable speed */}
+              <div
+                className="flex gap-5 animate-marquee w-max py-2"
+                style={{
+                  animationDuration: `${marqueeDuration}s`,
+                }}
+              >
                 {/* First copy */}
-                {hotDeals.map((product: any) => (
+                {displayHotDeals.map((product: any) => (
                   <div key={`a-${product._id}`} className="w-[230px] sm:w-[260px] flex-shrink-0">
                     <ProductCard product={product} />
                   </div>
                 ))}
                 {/* Duplicate copy — makes the loop seamless */}
-                {hotDeals.map((product: any) => (
+                {displayHotDeals.map((product: any) => (
                   <div key={`b-${product._id}`} className="w-[230px] sm:w-[260px] flex-shrink-0" aria-hidden="true">
                     <ProductCard product={product} />
                   </div>
@@ -311,9 +338,16 @@ export const CategoryProductCatalog: React.FC<Props> = ({
               </div>
             </div>
 
-            <p className="text-center text-[11px] text-white/50 mt-4 font-medium">
-              ✋ হোভার করলে স্লাইড থামবে
-            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4 text-[11px] text-white/70 font-medium px-1">
+              <span>✋ মাউস হোভার বা স্ক্রিনে স্পর্শ করে রাখলে স্লাইড থেমে থাকবে</span>
+              <Link
+                href="/collections/all?hotDeals=true"
+                className="hover:text-white underline underline-offset-2 flex items-center gap-1 font-semibold"
+              >
+                <span>সব হট ডিল কালেকশন দেখুন ({hotDeals.length} টি পণ্য)</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
           </div>
         </section>
       )}

@@ -96,20 +96,23 @@ export const CollectionClient: React.FC<Props> = ({
       if (p.category) {
         const catName = p.category.trim();
         counts[catName] = (counts[catName] || 0) + 1;
-        counts[catName.toLowerCase()] = (counts[catName.toLowerCase()] || 0) + 1;
       }
     });
     return counts;
   }, [allProducts]);
 
   const getCategoryProductCount = (cat: Category) => {
-    return (
-      categoryCounts[cat.name] ||
-      categoryCounts[cat.name.trim()] ||
-      categoryCounts[cat.name.toLowerCase()] ||
-      (cat.slug ? categoryCounts[cat.slug] : 0) ||
-      0
-    );
+    if (cat.slug === 'all') return allProducts.length;
+    const trimmedName = cat.name.trim();
+    if (categoryCounts[trimmedName] !== undefined) return categoryCounts[trimmedName];
+
+    for (const [key, count] of Object.entries(categoryCounts)) {
+      if (key.toLowerCase() === trimmedName.toLowerCase()) return count;
+      if (cat.slug && (key.toLowerCase() === cat.slug.toLowerCase() || key.toLowerCase().replace(/\s+/g, '-') === cat.slug.toLowerCase())) {
+        return count;
+      }
+    }
+    return 0;
   };
 
   // Filter & Sort Pipeline (strictly operates on categoryProducts)

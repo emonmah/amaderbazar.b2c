@@ -21,8 +21,8 @@ module.exports = {
         },
       },
       animation: {
-        marquee: 'marquee 28s linear infinite',
-        'marquee-slow': 'marquee 40s linear infinite',
+        marquee: 'marquee 90s linear infinite',
+        'marquee-slow': 'marquee 140s linear infinite',
       },
     },
   },
