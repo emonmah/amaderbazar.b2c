@@ -33,18 +33,18 @@ async function getCategoryData() {
   }
 }
 
-// Slugs translation/fallback mapping (covers English names, Bengali, and URL slugs)
+// Fallback name & icon map for standard slugs
 const CATEGORY_SLUG_MAP: Record<string, { name: string; icon: string; description: string }> = {
-  'honey-and-ghee': { name: 'মধু ও ঘি (Honey & Ghee)', icon: '🍯', description: 'সুন্দরবনের খাঁটি মধু ও সুগন্ধি গাওয়া ঘি' },
-  'oil-and-seeds': { name: 'তেল ও বীজ (Oil & Ghee/Seeds)', icon: '🫒', description: 'ঘানি ভাঙা সরিষা ও কালোজিরা তেল' },
-  'dry-fruits-nuts': { name: 'ড্রাই ফ্রুটস ও বাদাম (Dates, Nuts & Seeds)', icon: '🥜', description: 'মেডজুল খেজুর ও কাজু-পেস্তা বাদাম' },
-  'spices-and-pulses': { name: 'মসলা ও ডাল (Spices & Pulses)', icon: '🌾', description: 'খাঁটি মসলা ও প্রিমিয়াম চাল' },
-  'spices': { name: 'মসলা সমগ্র (Spices Collection)', icon: '🌾', description: 'রান্নার সেরা স্বাদের জন্য খাঁটি ও বাছাইকৃত মসলা' },
-  'organic-health': { name: 'অর্গানিক স্বাস্থ্য (Organic Health)', icon: '🌿', description: 'চিয়া সিড ও প্রাকৃতিক ভেষজ সম্পূরক' },
-  'tea-and-coffee': { name: 'চা ও কফি (Beverage / Tea & Coffee)', icon: '☕', description: 'সিলেটের প্রিমিয়াম চা ও অ্যারাবিকা কফি' },
-  'honey': { name: 'মধু ও ঘি (Honey & Ghee)', icon: '🍯', description: '১০০% প্রাকৃতিক চাকের খাঁটি মধু' },
+  'honey-and-ghee': { name: 'মধু ও ঘি', icon: '🍯', description: 'সুন্দরবনের খাঁটি মধু ও সুগন্ধি গাওয়া ঘি' },
+  'oil-and-seeds': { name: 'তেল ও বীজ', icon: '🫒', description: 'ঘানি ভাঙা সরিষা ও কালোজিরা তেল' },
+  'dry-fruits-nuts': { name: 'ড্রাই ফ্রুটস ও বাদাম', icon: '🥜', description: 'মেডজুল খেজুর ও কাজু-পেস্তা বাদাম' },
+  'spices-and-pulses': { name: 'মসলা ও ডাল', icon: '🌾', description: 'খাঁটি মসলা ও প্রিমিয়াম চাল' },
+  'spices': { name: 'মসলা সমগ্র', icon: '🌾', description: 'রান্নার সেরা স্বাদের জন্য খাঁটি ও বাছাইকৃত মসলা' },
+  'organic-health': { name: 'অর্গানিক স্বাস্থ্য', icon: '🌿', description: 'চিয়া সিড ও প্রাকৃতিক ভেষজ সম্পূরক' },
+  'tea-and-coffee': { name: 'চা ও কফি', icon: '☕', description: 'সিলেটের প্রিমিয়াম চা ও অ্যারাবিকা কফি' },
+  'honey': { name: 'মধু ও ঘি', icon: '🍯', description: '১০০% প্রাকৃতিক চাকের খাঁটি মধু' },
   'dates': { name: 'মেডজুল খেজুর ও ড্রাই ফ্রুটস', icon: '🥜', description: 'মদিনার বাছাইকৃত জাম্বো মেডজুল খেজুর' },
-  'all': { name: 'সকল পণ্য (All Collections)', icon: '📦', description: 'আমাদের বাজারের সম্পূর্ণ স্বাস্থ্যকর পণ্য সংগ্রহ' },
+  'all': { name: 'সকল পণ্য (All Collections)', icon: '📦', description: 'আমাদের বাজারের সম্পূর্ণ স্বাস্থ্যকর খাদ্যপণ্য সংগ্রহ' },
 };
 
 export default async function CategoryCollectionPage({
@@ -52,22 +52,22 @@ export default async function CategoryCollectionPage({
   searchParams,
 }: {
   params: { slug: string };
-  searchParams: { hotDeals?: string };
+  searchParams: { hotDeals?: string; search?: string };
 }) {
   const { slug } = params;
   const decodedSlug = decodeURIComponent(slug).toLowerCase().trim();
   const { products, categories } = await getCategoryData();
 
-  // Find matching category from database or fallback map
+  // Find matching category from database
   const matchedDbCategory = categories.find(
     (c: any) =>
-      c.slug?.toLowerCase() === decodedSlug ||
-      c.name?.toLowerCase() === decodedSlug ||
-      c.slug?.toLowerCase() === decodedSlug.replace(/\s+/g, '-')
+      c.slug?.toLowerCase().trim() === decodedSlug ||
+      c.name?.toLowerCase().trim() === decodedSlug ||
+      c.slug?.toLowerCase().replace(/\s+/g, '-') === decodedSlug
   );
 
   const fallbackInfo = CATEGORY_SLUG_MAP[decodedSlug] || {
-    name: matchedDbCategory?.name || (decodedSlug === 'all' ? 'সকল পণ্য' : decodedSlug.replace(/-/g, ' ').toUpperCase()),
+    name: matchedDbCategory?.name || (decodedSlug === 'all' ? 'সকল পণ্য' : decodedSlug.replace(/-/g, ' ')),
     icon: matchedDbCategory?.icon || '🌿',
     description: matchedDbCategory?.description || '',
   };
@@ -76,35 +76,55 @@ export default async function CategoryCollectionPage({
   const finalIcon = matchedDbCategory?.icon || fallbackInfo.icon;
   const finalDescription = matchedDbCategory?.description || fallbackInfo.description;
 
-  // Filter products relevant to this collection
-  let relevantProducts = products;
-  if (searchParams.hotDeals === 'true') {
-    relevantProducts = products.filter((p: any) => p.isHotDeal);
-  } else if (decodedSlug !== 'all') {
+  // Strict category filtering: Only include products that truly match this category
+  let relevantProducts: any[] = [];
+
+  if (decodedSlug === 'all') {
+    // Show all products or hot deals
+    relevantProducts = searchParams.hotDeals === 'true'
+      ? products.filter((p: any) => p.isHotDeal)
+      : products;
+  } else {
     relevantProducts = products.filter((p: any) => {
       if (!p.category) return false;
-      const catLower = p.category.toLowerCase();
-      // Match by DB name, DB slug, or fallback
-      if (matchedDbCategory && p.category === matchedDbCategory.name) return true;
-      if (catLower.includes(decodedSlug) || decodedSlug.includes(catLower)) return true;
-      if (matchedDbCategory && catLower.includes(matchedDbCategory.slug?.toLowerCase())) return true;
+      const pCat = p.category.trim().toLowerCase();
+
+      // 1. Direct match with matched DB category name
+      if (matchedDbCategory) {
+        if (p.category.trim() === matchedDbCategory.name.trim()) return true;
+        if (pCat === matchedDbCategory.name.trim().toLowerCase()) return true;
+        if (matchedDbCategory.slug && pCat === matchedDbCategory.slug.trim().toLowerCase()) return true;
+      }
+
+      // 2. Direct match with current slug
+      if (pCat === decodedSlug) return true;
+      if (pCat.replace(/\s+/g, '-') === decodedSlug) return true;
+
+      // 3. Match with fallback map name
+      if (fallbackInfo && fallbackInfo.name && pCat === fallbackInfo.name.trim().toLowerCase()) return true;
+
       return false;
     });
 
-    // If filtering by slug returned 0 products due to exact naming difference, fallback to all products so user still sees the store!
-    if (relevantProducts.length === 0 && products.length > 0) {
-      relevantProducts = products;
+    if (searchParams.hotDeals === 'true') {
+      relevantProducts = relevantProducts.filter((p: any) => p.isHotDeal);
     }
   }
 
+  // NOTE: If relevantProducts is empty (e.g. 0 products in "তেল ও বীজ"),
+  // it MUST remain empty so CollectionClient displays "0 টি পণ্য" and the empty state!
+  // NEVER fallback to unrelated products.
+
   return (
     <CollectionClient
-      initialProducts={relevantProducts}
+      allProducts={products}
+      categoryProducts={relevantProducts}
       categories={categories}
       currentSlug={decodedSlug}
       categoryName={finalName}
       categoryDescription={finalDescription}
       categoryIcon={finalIcon}
+      isHotDealsOnly={searchParams.hotDeals === 'true'}
     />
   );
 }

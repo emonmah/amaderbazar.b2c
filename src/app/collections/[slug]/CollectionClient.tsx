@@ -14,6 +14,7 @@ import {
   Filter,
   Check,
   Search,
+  PackageOpen,
 } from 'lucide-react';
 
 interface Category {
@@ -41,21 +42,25 @@ interface Product {
 }
 
 interface Props {
-  initialProducts: Product[];
+  allProducts: Product[];        // Entire store catalog for global counts
+  categoryProducts: Product[];   // Products belonging strictly to this category
   categories: Category[];
   currentSlug: string;
   categoryName: string;
   categoryDescription?: string;
   categoryIcon?: string;
+  isHotDealsOnly?: boolean;
 }
 
 export const CollectionClient: React.FC<Props> = ({
-  initialProducts,
-  categories,
+  allProducts = [],
+  categoryProducts = [],
+  categories = [],
   currentSlug,
   categoryName,
   categoryDescription,
   categoryIcon,
+  isHotDealsOnly = false,
 }) => {
   const router = useRouter();
 
@@ -67,36 +72,49 @@ export const CollectionClient: React.FC<Props> = ({
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
 
-  // Determine max price among products for the range slider
+  // Determine max price among products for the range slider (at least 5000)
   const maxPossiblePrice = useMemo(() => {
-    if (initialProducts.length === 0) return 5000;
-    const max = Math.max(...initialProducts.map((p) => p.basePrice || 0));
-    return Math.ceil(max / 100) * 100 || 5000;
-  }, [initialProducts]);
+    if (allProducts.length === 0) return 5000;
+    const max = Math.max(...allProducts.map((p) => p.basePrice || 0));
+    return Math.max(5000, Math.ceil(max / 100) * 100);
+  }, [allProducts]);
 
   // Extract unique units for unit filter
   const availableUnits = useMemo(() => {
     const units = new Set<string>();
-    initialProducts.forEach((p) => {
+    const pool = categoryProducts.length > 0 ? categoryProducts : allProducts;
+    pool.forEach((p) => {
       if (p.unit) units.add(p.unit);
     });
     return Array.from(units);
-  }, [initialProducts]);
+  }, [categoryProducts, allProducts]);
 
-  // Calculate product counts per category
+  // Global product counts per category across the entire store
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    initialProducts.forEach((p) => {
+    allProducts.forEach((p) => {
       if (p.category) {
-        counts[p.category] = (counts[p.category] || 0) + 1;
+        const catName = p.category.trim();
+        counts[catName] = (counts[catName] || 0) + 1;
+        counts[catName.toLowerCase()] = (counts[catName.toLowerCase()] || 0) + 1;
       }
     });
     return counts;
-  }, [initialProducts]);
+  }, [allProducts]);
 
-  // Filter & Sort Pipeline
+  const getCategoryProductCount = (cat: Category) => {
+    return (
+      categoryCounts[cat.name] ||
+      categoryCounts[cat.name.trim()] ||
+      categoryCounts[cat.name.toLowerCase()] ||
+      (cat.slug ? categoryCounts[cat.slug] : 0) ||
+      0
+    );
+  };
+
+  // Filter & Sort Pipeline (strictly operates on categoryProducts)
   const filteredProducts = useMemo(() => {
-    let result = [...initialProducts];
+    let result = [...categoryProducts];
 
     // Search filter
     if (searchFilter.trim()) {
@@ -140,12 +158,11 @@ export const CollectionClient: React.FC<Props> = ({
         result.sort((a, b) => (b.discountPercent || 0) - (a.discountPercent || 0));
         break;
       default:
-        // Default sorting
         break;
     }
 
     return result;
-  }, [initialProducts, searchFilter, selectedSubCat, maxPriceFilter, selectedUnit, sortOption]);
+  }, [categoryProducts, searchFilter, selectedSubCat, maxPriceFilter, selectedUnit, sortOption]);
 
   const handleResetFilters = () => {
     setSelectedSubCat('all');
@@ -163,39 +180,45 @@ export const CollectionClient: React.FC<Props> = ({
     sortOption !== 'default';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* ── Breadcrumb & Header Title (Matching Ghorer Bazar Style) ── */}
-      <div className="space-y-2 border-b border-slate-200 pb-5">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* ── Breadcrumb & Category Title Card (Matching Ghorer Bazar Style) ── */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
         <nav className="text-xs text-slate-500 flex items-center gap-2">
           <Link href="/" className="hover:text-emerald-700 transition">
-            Home
+            হোম (Home)
           </Link>
           <span>›</span>
           <Link href="/collections/all" className="hover:text-emerald-700 transition">
-            Collections
+            কালেকশন
           </Link>
           <span>›</span>
-          <span className="text-slate-900 font-bold">{categoryName}</span>
+          <span className="text-emerald-700 font-bold">{categoryName}</span>
         </nav>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1 border-t border-slate-100">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
               {categoryIcon && <span>{categoryIcon}</span>}
               <span>{categoryName}</span>
+              {isHotDealsOnly && (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold uppercase">
+                  🔥 হট ডিল
+                </span>
+              )}
             </h1>
             {categoryDescription && (
               <p className="text-xs sm:text-sm text-slate-500 mt-1">{categoryDescription}</p>
             )}
           </div>
 
-          <div className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-auto">
-            মোট {filteredProducts.length} টি পণ্য পাওয়া গেছে
+          <div className="text-xs font-semibold px-3.5 py-2 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-auto flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>মোট {categoryProducts.length} টি পণ্য এই ক্যাটাগরিতে রয়েছে</span>
           </div>
         </div>
       </div>
 
-      {/* ── Mobile Filter Toggle Button ── */}
+      {/* ── Mobile Filter Toggle Bar ── */}
       <div className="lg:hidden flex items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
         <button
           type="button"
@@ -203,13 +226,12 @@ export const CollectionClient: React.FC<Props> = ({
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-sm"
         >
           <SlidersHorizontal className="w-4 h-4" />
-          <span>ফিল্টার ও সাজান</span>
+          <span>ফিল্টার মেনু</span>
           {hasActiveFilters && (
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
           )}
         </button>
 
-        {/* Mobile Sort dropdown */}
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value)}
@@ -228,7 +250,7 @@ export const CollectionClient: React.FC<Props> = ({
         {/* ── Left Sidebar: Filter Panel ── */}
         <aside
           className={`
-            lg:block lg:sticky lg:top-24 space-y-6
+            lg:block lg:sticky lg:top-28 space-y-6
             ${isMobileFilterOpen ? 'block' : 'hidden'}
             bg-white p-5 rounded-3xl border border-slate-200 shadow-sm
           `}
@@ -250,7 +272,7 @@ export const CollectionClient: React.FC<Props> = ({
             )}
           </div>
 
-          {/* Search inside collection */}
+          {/* Search within collection */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">
               পণ্য অনুসন্ধান
@@ -272,7 +294,8 @@ export const CollectionClient: React.FC<Props> = ({
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-l-2 border-emerald-600 pl-2">
               FILTER BY CATEGORY
             </h4>
-            <div className="space-y-1 max-h-60 overflow-y-auto pr-1 text-xs">
+            <div className="space-y-1 max-h-64 overflow-y-auto pr-1 text-xs">
+              {/* All Categories Option with Global Total Count */}
               <button
                 type="button"
                 onClick={() => router.push('/collections/all')}
@@ -283,14 +306,18 @@ export const CollectionClient: React.FC<Props> = ({
                 }`}
               >
                 <span>সকল ক্যাটাগরি (All)</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${currentSlug === 'all' ? 'bg-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                  {initialProducts.length}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${currentSlug === 'all' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  {allProducts.length}
                 </span>
               </button>
 
+              {/* Dynamic Categories with Accurate Counts from Store */}
               {categories.map((cat) => {
-                const isActiveCat = currentSlug === cat.slug || currentSlug === cat.name;
-                const count = categoryCounts[cat.name] || 0;
+                const isActiveCat =
+                  currentSlug === cat.slug?.toLowerCase() ||
+                  currentSlug === cat.name?.toLowerCase() ||
+                  currentSlug === encodeURIComponent(cat.name).toLowerCase();
+                const count = getCategoryProductCount(cat);
 
                 return (
                   <button
@@ -316,7 +343,7 @@ export const CollectionClient: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Price Range Slider (Matches Ghorer Bazar sidebar) */}
+          {/* Price Range Slider */}
           <div className="space-y-2 pt-2 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-l-2 border-emerald-600 pl-2">
@@ -341,7 +368,7 @@ export const CollectionClient: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Unit / Weight Filter (e.g. 500gm, 1kg) */}
+          {/* Unit / Weight Filter */}
           {availableUnits.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-slate-100">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-l-2 border-emerald-600 pl-2">
@@ -395,7 +422,8 @@ export const CollectionClient: React.FC<Props> = ({
           {/* Top Sort & Count Bar (Desktop) */}
           <div className="hidden lg:flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <div className="text-xs text-slate-600">
-              দেখাচ্ছে: <span className="font-bold text-slate-900">{filteredProducts.length}</span> টি পণ্য
+              দেখাচ্ছে:{' '}
+              <span className="font-bold text-slate-900">{filteredProducts.length}</span> টি পণ্য
             </div>
 
             <div className="flex items-center gap-3">
@@ -452,10 +480,36 @@ export const CollectionClient: React.FC<Props> = ({
             </div>
           )}
 
-          {/* Product Grid */}
-          {filteredProducts.length === 0 ? (
+          {/* Product Grid or Empty State */}
+          {categoryProducts.length === 0 ? (
+            /* Empty State: Category itself has 0 products */
             <div className="py-16 px-6 text-center bg-white rounded-3xl border border-slate-200 space-y-4 shadow-sm">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-50 text-3xl flex items-center justify-center">
+                {categoryIcon || '🌿'}
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg text-slate-800">
+                  {categoryName} ক্যাটাগরিতে এখনো কোনো পণ্য নেই
+                </h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                  এই ক্যাটাগরিতে বর্তমানে কোনো পণ্য স্টক এ নেই। অনুগ্রহ করে আমাদের অন্যান্য ক্যাটাগরি ব্রাউজ করুন।
+                </p>
+              </div>
+              <div className="pt-2 flex flex-wrap justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push('/collections/all')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition active:scale-95"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  সকল পণ্য দেখুন ({allProducts.length})
+                </button>
+              </div>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            /* Empty State: Products exist in category, but user filters matched nothing */
+            <div className="py-16 px-6 text-center bg-white rounded-3xl border border-slate-200 space-y-4 shadow-sm">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 text-3xl flex items-center justify-center">
                 🔍
               </div>
               <div className="space-y-1">
@@ -463,7 +517,7 @@ export const CollectionClient: React.FC<Props> = ({
                   কোনো পণ্য পাওয়া যায়নি
                 </h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  আপনার নির্বাচিত ফিল্টারে কোনো পণ্য মেলেনি। অনুগ্রহ করে ফিল্টার পরিবর্তন বা রিসেট করুন।
+                  আপনার নির্বাচিত ফিল্টারের সাথে কোনো পণ্য মেলেনি। অনুগ্রহ করে ফিল্টার রিসেট করুন।
                 </p>
               </div>
               <div>
@@ -472,8 +526,7 @@ export const CollectionClient: React.FC<Props> = ({
                   onClick={handleResetFilters}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
                 >
-                  <ArrowRight className="w-4 h-4" />
-                  ফিল্টার রিসেট করে সব দেখুন
+                  ফিল্টার রিসেট করুন
                 </button>
               </div>
             </div>
