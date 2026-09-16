@@ -71,39 +71,39 @@ export const HeroSlider: React.FC<{ initialSliders?: SliderItem[] }> = ({ initia
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
         {slides.map((slide, index) => (
-          <div key={slide._id || index} className="relative min-w-full aspect-[16/7] sm:aspect-[21/8] min-h-[340px]">
+          <div key={slide._id || index} className="relative min-w-full aspect-[4/3] sm:aspect-[16/7] sm:min-h-[300px] min-h-[240px]">
             <img
               src={slide.imageUrl}
               alt={slide.title}
               className="absolute inset-0 w-full h-full object-cover brightness-[0.70]"
             />
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent flex items-center px-6 sm:px-12 md:px-16">
-              <div className="max-w-2xl space-y-3 sm:space-y-4 text-white">
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent flex items-center px-5 sm:px-12 md:px-16">
+              <div className="max-w-2xl space-y-2 sm:space-y-4 text-white">
                 {slide.badge && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/30 backdrop-blur-md border border-emerald-400/40 text-emerald-300 text-xs font-bold shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/30 backdrop-blur-md border border-emerald-400/40 text-emerald-300 text-[11px] sm:text-xs font-bold shadow-sm">
+                    <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     {slide.badge}
                   </span>
                 )}
 
-                <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight drop-shadow-md">
+                <h1 className="text-lg sm:text-4xl md:text-5xl font-black tracking-tight leading-tight drop-shadow-md line-clamp-3 sm:line-clamp-none">
                   {slide.title}
                 </h1>
 
                 {slide.subtitle && (
-                  <p className="text-xs sm:text-sm md:text-base text-slate-200 line-clamp-2 leading-relaxed max-w-xl drop-shadow">
+                  <p className="hidden sm:block text-xs sm:text-sm md:text-base text-slate-200 line-clamp-2 leading-relaxed max-w-xl drop-shadow">
                     {slide.subtitle}
                   </p>
                 )}
 
-                <div className="pt-2">
+                <div className="pt-1 sm:pt-2">
                   <Link
                     href={slide.linkUrl || '/#catalog'}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-900/40 transition active:scale-95"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-900/40 transition active:scale-95"
                   >
                     <span>{slide.buttonText || 'অর্ডার করুন'}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </Link>
                 </div>
               </div>

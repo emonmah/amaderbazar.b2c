@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ProductCard } from './ProductCard';
-import { Sparkles, Tag, X, Filter, FolderTree, ArrowRight, Flame, Clock } from 'lucide-react';
+import { Sparkles, Tag, X, Filter, FolderTree, ArrowRight, Flame, Clock, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 
 export interface Category {
   _id?: string;
@@ -26,6 +28,7 @@ export const CategoryProductCatalog: React.FC<Props> = ({
   initialCategories = [],
   hotDeals = [],
 }) => {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -69,6 +72,49 @@ export const CategoryProductCatalog: React.FC<Props> = ({
     }
   }, [categories]);
 
+  const categoryScrollRef = React.useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [hasMoved, setHasMoved] = useState(false);
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (!categoryScrollRef.current) return;
+    const scrollAmount = 320;
+    categoryScrollRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!categoryScrollRef.current) return;
+    setIsDragging(true);
+    setHasMoved(false);
+    setStartX(e.pageX - categoryScrollRef.current.offsetLeft);
+    setScrollLeft(categoryScrollRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !categoryScrollRef.current) return;
+    const x = e.pageX - categoryScrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    if (Math.abs(walk) > 6) {
+      setHasMoved(true);
+    }
+    categoryScrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleCardClick = (cat: Category) => {
+    if (hasMoved) return; // ignore click when dragging
+    const targetSlug = cat.slug || encodeURIComponent(cat.name);
+    router.push(`/collections/${targetSlug}`);
+  };
+
   const handleSelectCategory = (catName: string) => {
     setSelectedCategory(catName);
     const catalogEl = document.getElementById('catalog');
@@ -98,115 +144,176 @@ export const CategoryProductCatalog: React.FC<Props> = ({
 
   return (
     <div className="space-y-12">
-      {/* 1. Category Highlights Section */}
+      {/* 1. Category Highlights Section (Movable Slider with Prev/Next Controls & Dragging) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
               <FolderTree className="w-3.5 h-3.5" />
               ক্যাটাগরি সমূহ
             </span>
             <h2 className="text-2xl font-black text-slate-900 mt-0.5">জনপ্রিয় পণ্য বিভাগ</h2>
-            <p className="text-xs text-slate-500">ক্যাটাগরিতে ক্লিক করে সরাসরি পণ্যগুলো ব্রাউজ করুন</p>
+            <p className="text-xs text-slate-500">ক্যাটাগরি স্লাইড করে আপনার পছন্দের বিভাগ নির্বাচন করুন</p>
           </div>
 
-          {selectedCategory !== 'All' && (
-            <button
-              onClick={() => setSelectedCategory('All')}
-              className="self-start sm:self-auto text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-full border border-emerald-200 transition flex items-center gap-1.5"
-            >
-              <X className="w-3.5 h-3.5" />
-              সকল পণ্য দেখুন ({initialProducts.length})
-            </button>
-          )}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {selectedCategory !== 'All' && (
+              <button
+                onClick={() => setSelectedCategory('All')}
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition flex items-center gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" />
+                সকল পণ্য ({initialProducts.length})
+              </button>
+            )}
+
+            {/* Category Navigation Controls */}
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => scrollCategories('left')}
+                className="w-8 h-8 rounded-xl bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center shadow-sm transition active:scale-95 border border-slate-200/60"
+                title="পূর্ববর্তী ক্যাটাগরি"
+                aria-label="Previous Category"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollCategories('right')}
+                className="w-8 h-8 rounded-xl bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 flex items-center justify-center shadow-sm transition active:scale-95 border border-slate-200/60"
+                title="পরবর্তী ক্যাটাগরি"
+                aria-label="Next Category"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
-          {categories.map((cat) => {
-            const isSelected = selectedCategory === cat.name;
-            const count = categoryCounts[cat.name] || 0;
+        {/* Movable Categories Track (Draggable & Swipeable Horizontal Slider) */}
+        <div className="relative">
+          <div
+            ref={categoryScrollRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUpOrLeave}
+            onMouseLeave={handleMouseUpOrLeave}
+            className={`flex gap-3.5 sm:gap-4 overflow-x-auto scroll-smooth scrollbar-none py-2 px-0.5 snap-x select-none ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+          >
+            {categories.map((cat) => {
+              const isSelected = selectedCategory === cat.name;
+              const count = categoryCounts[cat.name] || 0;
 
-            return (
-              <button
-                key={cat._id || cat.name}
-                type="button"
-                onClick={() => handleSelectCategory(cat.name)}
-                className={`p-4 rounded-3xl border transition-all duration-200 text-center space-y-2 relative group flex flex-col items-center justify-center ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/30 scale-[1.03]'
-                    : 'bg-white border-slate-200/90 hover:border-emerald-500 hover:shadow-xl text-slate-900'
-                }`}
-              >
-                <div
-                  className={`text-3xl transition-transform duration-300 group-hover:scale-110 ${
-                    isSelected ? 'drop-shadow' : ''
-                  }`}
-                >
-                  {cat.icon || '🌿'}
-                </div>
-
-                <div
-                  className={`font-extrabold text-sm leading-snug ${
-                    isSelected ? 'text-white' : 'text-slate-900 group-hover:text-emerald-700'
-                  }`}
-                >
-                  {cat.name}
-                </div>
-
-                <div
-                  className={`text-[11px] line-clamp-1 ${
-                    isSelected ? 'text-emerald-100' : 'text-slate-500'
-                  }`}
-                >
-                  {cat.description || cat.desc || `${count} টি পণ্য`}
-                </div>
-
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              return (
+                <button
+                  key={cat._id || cat.name}
+                  type="button"
+                  onClick={() => handleCardClick(cat)}
+                  className={`w-[155px] sm:w-[175px] md:w-[190px] flex-shrink-0 snap-start p-4 rounded-3xl border transition-all duration-200 text-center space-y-2 relative group flex flex-col items-center justify-center ${
                     isSelected
-                      ? 'bg-emerald-700/80 text-white'
-                      : 'bg-slate-100 text-slate-600 group-hover:bg-emerald-50 group-hover:text-emerald-700'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/30 scale-[1.02]'
+                      : 'bg-white border-slate-200/90 hover:border-emerald-500 hover:shadow-xl text-slate-900'
                   }`}
                 >
-                  {count} টি পণ্য
-                </span>
-              </button>
-            );
-          })}
+                  <div
+                    className={`text-3xl transition-transform duration-300 group-hover:scale-110 ${
+                      isSelected ? 'drop-shadow' : ''
+                    }`}
+                  >
+                    {cat.icon || '🌿'}
+                  </div>
+
+                  <div
+                    className={`font-extrabold text-sm leading-snug truncate w-full ${
+                      isSelected ? 'text-white' : 'text-slate-900 group-hover:text-emerald-700'
+                    }`}
+                  >
+                    {cat.name}
+                  </div>
+
+                  <div
+                    className={`text-[11px] line-clamp-1 w-full ${
+                      isSelected ? 'text-emerald-100' : 'text-slate-500'
+                    }`}
+                  >
+                    {cat.description || cat.desc || `${count} টি পণ্য`}
+                  </div>
+
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      isSelected
+                        ? 'bg-emerald-700/80 text-white'
+                        : 'bg-slate-100 text-slate-600 group-hover:bg-emerald-50 group-hover:text-emerald-700'
+                    }`}
+                  >
+                    {count} টি পণ্য
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* 2. 🔥 Hot Deals Flash Sale Section */}
+      {/* 2. 🔥 Hot Deals Flash Sale — Infinite Right-to-Left Marquee Slider */}
       {hotDeals && hotDeals.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-rose-600 via-rose-700 to-amber-600 text-white shadow-2xl relative overflow-hidden">
             {/* Background Glow */}
-            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider">
                   <Flame className="w-4 h-4 fill-white animate-bounce" />
-                  সীমিত সময়ের অফার • ধামাকা হট ডিল
+                  সীমিত সময়ের অফার • ধামাকা হট ডিল
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black">🔥 আজকের স্পেশাল হট ডিলস</h2>
                 <p className="text-xs sm:text-sm text-rose-100">
-                  সেরা মানের প্রাকৃতিক পণ্যগুলোতে পাচ্ছেন আকর্ষণীয় ছাড় ও ক্যাশব্যাক অফার!
+                  সেরা মানের প্রাকৃতিক পণ্যগুলোতে পাচ্ছেন আকর্ষণীয় ছাড় ও ক্যাশব্যাক অফার!
                 </p>
               </div>
 
               <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2.5 rounded-2xl text-xs font-bold border border-white/10 self-start sm:self-auto">
                 <Clock className="w-4 h-4 text-amber-300" />
-                <span>অফার শেষ হতে আর মাত্র কয়েক দিন বাকি!</span>
+                <span>অফার শেষ হতে আর মাত্র কয়েক দিন বাকি!</span>
               </div>
             </div>
 
-            {/* Hot Deals Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {hotDeals.map((product: any) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
+            {/* ── Infinite Marquee Slider ── */}
+            {/* Outer wrapper: clips overflow + adds edge fade masks */}
+            <div
+              className="marquee-track relative overflow-hidden"
+              style={{
+                /* Fade edges using a mask gradient */
+                maskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
+              }}
+            >
+              {/* Inner flex track — duplicated cards for seamless loop */}
+              <div className="flex gap-5 animate-marquee w-max">
+                {/* First copy */}
+                {hotDeals.map((product: any) => (
+                  <div key={`a-${product._id}`} className="w-[230px] sm:w-[260px] flex-shrink-0">
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+                {/* Duplicate copy — makes the loop seamless */}
+                {hotDeals.map((product: any) => (
+                  <div key={`b-${product._id}`} className="w-[230px] sm:w-[260px] flex-shrink-0" aria-hidden="true">
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
             </div>
+
+            <p className="text-center text-[11px] text-white/50 mt-4 font-medium">
+              ✋ হোভার করলে স্লাইড থামবে
+            </p>
           </div>
         </section>
       )}
@@ -236,14 +343,24 @@ export const CategoryProductCatalog: React.FC<Props> = ({
             </span>
 
             {selectedCategory !== 'All' && (
-              <button
-                onClick={() => setSelectedCategory('All')}
-                className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition"
-                title="ফিল্টার মুছুন"
-              >
-                <X className="w-3.5 h-3.5" />
-                রিসেট
-              </button>
+              <>
+                <Link
+                  href={`/collections/${activeCategoryObj?.slug || encodeURIComponent(selectedCategory)}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition"
+                >
+                  <span>কালেকশন পেজ</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+
+                <button
+                  onClick={() => setSelectedCategory('All')}
+                  className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition"
+                  title="ফিল্টার মুছুন"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  রিসেট
+                </button>
+              </>
             )}
           </div>
         </div>

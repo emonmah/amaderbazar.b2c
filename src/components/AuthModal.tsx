@@ -37,20 +37,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         const res = await axios.post(
           `${API_BASE}/auth/login`,
           { email, password },
-          { headers: { 'x-tenant-id': 'tenant-fashion-001' } }
+          { headers: { 'x-tenant-id': 'tenant-fashion-001' }, withCredentials: true }
         );
         setAuth(res.data.user, res.data.accessToken);
       } else {
         const regRes = await axios.post(
           `${API_BASE}/auth/register`,
           { email, password, name },
-          { headers: { 'x-tenant-id': 'tenant-fashion-001' } }
+          { headers: { 'x-tenant-id': 'tenant-fashion-001' }, withCredentials: true }
         );
         // Then login automatically
         const loginRes = await axios.post(
           `${API_BASE}/auth/login`,
           { email, password },
-          { headers: { 'x-tenant-id': 'tenant-fashion-001' } }
+          { headers: { 'x-tenant-id': 'tenant-fashion-001' }, withCredentials: true }
         );
         setAuth(loginRes.data.user, loginRes.data.accessToken);
       }
@@ -77,7 +77,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           name: 'Rahim Ahmed (Google)',
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
         },
-        { headers: { 'x-tenant-id': 'tenant-fashion-001' } }
+        { headers: { 'x-tenant-id': 'tenant-fashion-001' }, withCredentials: true }
       );
 
       setAuth(res.data.user, res.data.accessToken);
@@ -103,7 +103,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           name: 'Karim Chowdhury (Facebook)',
           avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
         },
-        { headers: { 'x-tenant-id': 'tenant-fashion-001' } }
+        { headers: { 'x-tenant-id': 'tenant-fashion-001' }, withCredentials: true }
       );
 
       setAuth(res.data.user, res.data.accessToken);

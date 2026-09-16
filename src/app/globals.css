@@ -11,3 +11,13 @@ body {
   color: rgb(var(--foreground-rgb));
   background: #f8fafc;
 }
+
+/* Pause marquee on hover */
+.marquee-track:hover .animate-marquee,
+.marquee-track:hover .animate-marquee-slow {
+  animation-play-state: paused;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
